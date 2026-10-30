@@ -1,6 +1,6 @@
-# Sprint17_UnitTests_Mock
+# Practce 5 UnitTests_Mock
  
- Practical Task for Sprint 17 Unittesting of Web applications
+ Practical Task Unittesting of Web applications
 
 Your tasks are:
 1. notice what's logic being tested (services, controllers, etc);
