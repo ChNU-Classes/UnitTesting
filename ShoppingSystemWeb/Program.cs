@@ -2,10 +2,13 @@
 using Microsoft.Extensions.DependencyInjection;
 using ShoppingSystemWeb.Data;
 using ShoppingSystemWeb.Models;
+using ShoppingSystemWeb.Repositories;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<ShoppingSystemWebContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("ShoppingSystemWebContext")));
+
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
