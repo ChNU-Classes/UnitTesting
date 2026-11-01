@@ -1,35 +1,27 @@
 ﻿#nullable disable
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ShoppingSystemWeb.Data;
 using ShoppingSystemWeb.Models;
-using ShoppingSystemWeb.Services;
+using ShoppingSystemWeb.Repositories;
 
 namespace ShoppingSystemWeb.Controllers
 {
     public class ProductsController : Controller
     {
-        private readonly ShoppingSystemWebContext _context;
+        private const int PageSize = 3;
 
-        public ProductsController(ShoppingSystemWebContext context)
+        private readonly IProductRepository _repository;
+
+        public ProductsController(IProductRepository repository)
         {
-            _context = context;
+            _repository = repository;
         }
 
         // GET: Products
         public async Task<IActionResult> Index(int? pageNumber, string searchString)
         {
-            int pageSize = 3;
-            var products = from m in _context.Product
-                         select m;
-
-            if (!string.IsNullOrEmpty(searchString))
-			{
-				products = products.Where(s => s.Title!.Contains(searchString) || s.Category!.Contains(searchString));
-
-			}
-
-			return View(await PaginatedList<Product>.CreateAsync(products.AsNoTracking(), pageNumber ?? 1, pageSize));
+            var products = await _repository.GetPagedAsync(searchString, pageNumber ?? 1, PageSize);
+            return View(products);
         }
 
         // GET: Products/Details/5
@@ -40,8 +32,7 @@ namespace ShoppingSystemWeb.Controllers
                 return NotFound();
             }
 
-            var product = await _context.Product
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var product = await _repository.GetByIdAsync(id.Value);
             if (product == null)
             {
                 return NotFound();
@@ -57,16 +48,13 @@ namespace ShoppingSystemWeb.Controllers
         }
 
         // POST: Products/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Id,Title,ExpiredDate,Category,Price")] Product product)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(product);
-                await _context.SaveChangesAsync();
+                await _repository.AddAsync(product);
                 return RedirectToAction(nameof(Index));
             }
             return View(product);
@@ -80,7 +68,7 @@ namespace ShoppingSystemWeb.Controllers
                 return NotFound();
             }
 
-            var product = await _context.Product.FindAsync(id);
+            var product = await _repository.GetByIdAsync(id.Value);
             if (product == null)
             {
                 return NotFound();
@@ -89,8 +77,6 @@ namespace ShoppingSystemWeb.Controllers
         }
 
         // POST: Products/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Title,ExpiredDate,Category,Price")] Product product)
@@ -104,12 +90,11 @@ namespace ShoppingSystemWeb.Controllers
             {
                 try
                 {
-                    _context.Update(product);
-                    await _context.SaveChangesAsync();
+                    await _repository.UpdateAsync(product);
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!ProductExists(product.Id))
+                    if (!await _repository.ExistsAsync(product.Id))
                     {
                         return NotFound();
                     }
@@ -131,8 +116,7 @@ namespace ShoppingSystemWeb.Controllers
                 return NotFound();
             }
 
-            var product = await _context.Product
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var product = await _repository.GetByIdAsync(id.Value);
             if (product == null)
             {
                 return NotFound();
@@ -146,15 +130,8 @@ namespace ShoppingSystemWeb.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var product = await _context.Product.FindAsync(id);
-            _context.Product.Remove(product);
-            await _context.SaveChangesAsync();
+            await _repository.DeleteAsync(id);
             return RedirectToAction(nameof(Index));
-        }
-
-        private bool ProductExists(int id)
-        {
-            return _context.Product.Any(e => e.Id == id);
         }
     }
 }
